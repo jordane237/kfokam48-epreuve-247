@@ -3,6 +3,7 @@ package com.kfokam48.presence.api.error;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -26,6 +27,12 @@ public class GlobalExceptionHandler {
                 .map(err -> "Le champ « " + err.getField() + " » est obligatoire.")
                 .orElse("Requête invalide.");
         return ResponseEntity.badRequest().body(new ApiError("CHAMP_MANQUANT", message));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> ressourceInconnue(NoResourceFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiError("RESSOURCE_INCONNUE", "Cette adresse n'existe pas."));
     }
 
     @ExceptionHandler(Exception.class)

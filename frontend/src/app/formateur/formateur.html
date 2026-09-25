@@ -1,0 +1,72 @@
+<h2>Espace formateur</h2>
+
+<section class="carte">
+  <h3>Ouvrir une session</h3>
+  <form (ngSubmit)="ouvrirSession()">
+    <label>
+      Titre de la session
+      <input type="text" name="titre" [(ngModel)]="titre" placeholder="Ex. Cours 3 — Bases de données" />
+    </label>
+    <label>
+      Promotion
+      <input type="number" name="promotionId" [(ngModel)]="promotionId" min="1" />
+    </label>
+    <button type="submit" [disabled]="ouvertureEnCours()">
+      {{ ouvertureEnCours() ? 'Ouverture…' : 'Ouvrir la session' }}
+    </button>
+  </form>
+
+  @if (erreurOuverture(); as err) {
+    <p class="erreur" role="alert">{{ err.message }} ({{ err.code }})</p>
+  }
+
+  @if (sessionCreee(); as s) {
+    <div class="succes">
+      <p>Session ouverte ✅ — code de présence à diffuser :</p>
+      <p class="code">{{ s.code }}</p>
+      <p class="detail">
+        Ouverte le {{ s.ouvertureAt | date:'dd/MM à HH:mm' }} ·
+        expire le {{ s.expirationAt | date:'dd/MM à HH:mm' }} (15 min, RG1)
+      </p>
+    </div>
+  }
+</section>
+
+<section class="carte">
+  <h3>Tableau de suivi — promotion {{ promotionId }}</h3>
+  <button type="button" (click)="chargerTableau()" [disabled]="tableauEnChargement()">
+    {{ tableauEnChargement() ? 'Chargement…' : 'Charger le tableau' }}
+  </button>
+
+  @if (erreurTableau(); as err) {
+    <p class="erreur" role="alert">{{ err.message }} ({{ err.code }})</p>
+  }
+
+  @if (tableauEnChargement()) {
+    <p class="chargement">Chargement du tableau…</p>
+  } @else if (lignes().length > 0) {
+    <table>
+      <thead>
+        <tr>
+          <th>Étudiant</th>
+          <th>Présences</th>
+          <th>Exercices déposés</th>
+          <th>Moyenne</th>
+          <th>Relectures en attente</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (l of lignes(); track l.etudiantId) {
+          <tr>
+            <td>{{ l.nom }}</td>
+            <td>{{ l.presences }}</td>
+            <td>{{ l.exercicesDeposes }}</td>
+            <!-- F3 : la moyenne vient telle quelle de l'API, jamais recalculée ici. -->
+            <td>{{ l.moyenne === null ? '—' : l.moyenne }}</td>
+            <td>{{ l.relecturesEnAttente }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</section>

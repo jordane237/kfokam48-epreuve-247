@@ -1,0 +1,594 @@
+openapi: 3.0.3
+info:
+  title: KFOKAM48 — Présence & Relecture par les pairs
+  description: |
+    Contrat d'API de l'application. Les 5 opérations marquées « imposée » sont
+    figées (chemins, verbes, codes de statut) — voir SUJET.md, Annexe B.
+    Les opérations ajoutées (clôture, remplacement de lien, présence manuelle)
+    découlent des arbitrages du cahier des charges (§7) : Q12/RG12, Q13/RG6, Q14/RG11.
+    Format d'erreur imposé partout : { "code": "...", "message": "..." }.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Développement local
+
+paths:
+  /api/sessions:
+    post:
+      summary: Ouvrir une session de cours (opération imposée)
+      tags: [Sessions]
+      operationId: ouvrirSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NouvelleSession'
+      responses:
+        '201':
+          description: Session ouverte, code généré, expiration à ouverture + 15 min (RG1)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionCreee'
+        '400':
+          $ref: '#/components/responses/ChampManquant'
+
+  /api/sessions/{id}/cloture:
+    post:
+      summary: Clôturer une session (opération ajoutée — EF7, RG12, décision §7)
+      description: |
+        Action manuelle du formateur : ferme le dépôt d'exercices et la présence
+        manuelle. Distincte de l'expiration du code (RG1) : un code peut être
+        expiré alors que la session reste ouverte au dépôt (Q12).
+      tags: [Sessions]
+      operationId: cloturerSession
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Session clôturée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '404':
+          $ref: '#/components/responses/SessionInconnue'
+        '409':
+          description: Session déjà clôturée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+              example:
+                code: SESSION_DEJA_CLOTUREE
+                message: La session est déjà clôturée.
+
+  /api/sessions/{id}/presences-manuelles:
+    post:
+      summary: Ajouter une présence à la main (opération ajoutée — EF12, RG11, décision §7)
+      description: |
+        Le formateur ajoute la présence d'un étudiant (souci de téléphone, Q14).
+        La présence est créée avec source=FORMATEUR pour que « ça se voie ».
+        Impossible après la clôture de la session (RG12).
+      tags: [Presences]
+      operationId: ajouterPresenceManuelle
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [etudiantId]
+              properties:
+                etudiantId:
+                  type: integer
+                  format: int64
+      responses:
+        '201':
+          description: Présence créée par le formateur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Presence'
+              example:
+                id: 42
+                sessionId: 7
+                etudiantId: 15
+                source: FORMATEUR
+        '404':
+          $ref: '#/components/responses/SessionInconnue'
+        '409':
+          description: Déjà présent (RG2) ou session clôturée (RG12)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+              examples:
+                dejaPresent:
+                  value:
+                    code: DEJA_PRESENT
+                    message: Cet étudiant a déjà marqué sa présence.
+                sessionCloturee:
+                  value:
+                    code: SESSION_CLOTUREE
+                    message: La session est clôturée, la présence ne peut plus être ajoutée.
+
+  /api/presences:
+    post:
+      summary: Marquer sa présence avec le code (opération imposée)
+      tags: [Presences]
+      operationId: marquerPresence
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, etudiantId]
+              properties:
+                code:
+                  type: string
+                  example: A7X2K9
+                etudiantId:
+                  type: integer
+                  format: int64
+      responses:
+        '201':
+          description: Présence enregistrée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Presence'
+        '400':
+          description: Code inconnu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+              example:
+                code: CODE_INCONNU
+                message: Ce code de présence n'existe pas.
+        '409':
+          description: Déjà présent (RG2)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+              example:
+                code: DEJA_PRESENT
+                message: Cet étudiant a déjà marqué sa présence.
+        '410':
+          description: Code expiré (RG1)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+              example:
+                code: CODE_EXPIRE
+                message: Le code de présence a expiré.
+        '429':
+          description: Blocage après 5 échecs (RG3, RG4 — client Q4)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+              example:
+                code: TROP_TENTATIVES
+                message: Trop de tentatives, réessayez dans 2 minutes.
+
+  /api/exercices:
+    post:
+      summary: Déposer le lien de son exercice (opération imposée)
+      tags: [Exercices]
+      operationId: deposerExercice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sessionId, etudiantId, lien]
+              properties:
+                sessionId:
+                  type: integer
+                  format: int64
+                etudiantId:
+                  type: integer
+                  format: int64
+                lien:
+                  type: string
+                  format: uri
+      responses:
+        '201':
+          description: Exercice déposé, statut initial (D4)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExerciceCree'
+        '400':
+          description: Lien invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+              example:
+                code: LIEN_INVALIDE
+                message: Le lien fourni n'est pas une URL valide.
+        '409':
+          description: Exercice déjà déposé (RG5)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+              example:
+                code: EXERCICE_DEJA_DEPOSE
+                message: Un exercice a déjà été déposé pour cette session.
+
+  /api/exercices/{id}:
+    put:
+      summary: Remplacer le lien de son exercice (opération ajoutée — EF6, RG6, décision §7)
+      description: |
+        Q13 : le lien peut être remplacé tant que personne n'a commencé la relecture.
+      tags: [Exercices]
+      operationId: remplacerLien
+      parameters:
+        - $ref: '#/components/parameters/ExerciceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lien]
+              properties:
+                lien:
+                  type: string
+                  format: uri
+      responses:
+        '200':
+          description: Lien remplacé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exercice'
+        '400':
+          $ref: '#/components/responses/LienInvalide'
+        '404':
+          $ref: '#/components/responses/ExerciceInconnu'
+        '409':
+          description: Une relecture a commencé (RG6) ou session clôturée (RG12)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+              examples:
+                relectureCommencee:
+                  value:
+                    code: RELECTURE_DEJA_COMMENCEE
+                    message: La relecture a commencé, le lien ne peut plus être remplacé.
+                sessionCloturee:
+                  value:
+                    code: SESSION_CLOTUREE
+                    message: La session est clôturée.
+
+  /api/relectures/{id}:
+    post:
+      summary: Rendre une relecture (opération imposée)
+      description: |
+        Note entière 0–20 (RG8) + commentaire. La relecture est définitive dès
+        l'envoi (RG10, Q15 tranché contre Q10 — cahier des charges §7) :
+        le 409 ci-dessous n'a aucune exception.
+      tags: [Relectures]
+      operationId: rendreRelecture
+      parameters:
+        - $ref: '#/components/parameters/RelectureId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [note, commentaire]
+              properties:
+                note:
+                  type: integer
+                  minimum: 0
+                  maximum: 20
+                commentaire:
+                  type: string
+      responses:
+        '200':
+          description: Relecture rendue (définitive, RG10)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Relecture'
+        '400':
+          description: Note hors 0–20 ou non entière (RG8)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+              example:
+                code: NOTE_INVALIDE
+                message: La note doit être un entier entre 0 et 20.
+        '403':
+          description: Relecture de son propre exercice (RG7)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+              example:
+                code: RELECTURE_PROPRE_EXERCICE
+                message: On ne peut pas relire son propre exercice.
+        '409':
+          description: Relecture déjà rendue (RG10, Q15)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+              example:
+                code: RELECTURE_DEJA_RENDUE
+                message: Cette relecture a déjà été rendue et est définitive.
+
+  /api/tableau:
+    get:
+      summary: Tableau de suivi du formateur (opération imposée)
+      description: |
+        Par étudiant : présence à chaque session, exercices déposés, moyenne des
+        notes reçues, relectures en attente (Q16, RG15). La moyenne est calculée
+        côté API — jamais recalculée côté front (F3).
+      tags: [Tableau]
+      operationId: consulterTableau
+      parameters:
+        - name: promotionId
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Tableau de suivi de la promotion
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LigneTableau'
+        '404':
+          description: Promotion inconnue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+              example:
+                code: PROMOTION_INCONNUE
+                message: Cette promotion n'existe pas.
+
+components:
+  parameters:
+    SessionId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    ExerciceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    RelectureId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+  responses:
+    ChampManquant:
+      description: Champ manquant ou invalide
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erreur'
+          example:
+            code: CHAMP_MANQUANT
+            message: Le champ « titre » est obligatoire.
+    SessionInconnue:
+      description: Session inconnue
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erreur'
+          example:
+            code: SESSION_INCONNUE
+            message: Cette session n'existe pas.
+    ExerciceInconnu:
+      description: Exercice inconnu
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erreur'
+          example:
+            code: EXERCICE_INCONNU
+            message: Cet exercice n'existe pas.
+    LienInvalide:
+      description: Lien invalide
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erreur'
+          example:
+            code: LIEN_INVALIDE
+            message: Le lien fourni n'est pas une URL valide.
+
+  schemas:
+    Erreur:
+      type: object
+      description: Format d'erreur imposé pour TOUTES les erreurs, sans exception (B4)
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: CODE_EXPIRE
+        message:
+          type: string
+          example: Le code de présence a expiré.
+
+    NouvelleSession:
+      type: object
+      required: [titre, promotionId]
+      properties:
+        titre:
+          type: string
+        promotionId:
+          type: integer
+          format: int64
+
+    SessionCreee:
+      type: object
+      required: [id, code, ouvertureAt, expirationAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+        code:
+          type: string
+          example: A7X2K9
+        ouvertureAt:
+          type: string
+          format: date-time
+        expirationAt:
+          type: string
+          format: date-time
+          description: ouvertureAt + 15 minutes (RG1)
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        titre:
+          type: string
+        promotionId:
+          type: integer
+          format: int64
+        code:
+          type: string
+        ouvertureAt:
+          type: string
+          format: date-time
+        expirationAt:
+          type: string
+          format: date-time
+        clotureAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    Presence:
+      type: object
+      required: [id, sessionId, etudiantId, source]
+      properties:
+        id:
+          type: integer
+          format: int64
+        sessionId:
+          type: integer
+          format: int64
+        etudiantId:
+          type: integer
+          format: int64
+        source:
+          type: string
+          enum: [ETUDIANT, FORMATEUR]
+          description: FORMATEUR = ajouté à la main par le formateur (Q14, RG11)
+
+    ExerciceCree:
+      type: object
+      required: [id, statut]
+      properties:
+        id:
+          type: integer
+          format: int64
+        statut:
+          type: string
+          enum: [depose, en_attente_relecteur, assigne, relu]
+          description: Cycle de vie D4
+
+    Exercice:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        sessionId:
+          type: integer
+          format: int64
+        etudiantId:
+          type: integer
+          format: int64
+        lien:
+          type: string
+          format: uri
+        statut:
+          type: string
+          enum: [depose, en_attente_relecteur, assigne, relu]
+        deposeAt:
+          type: string
+          format: date-time
+
+    Relecture:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        exerciceId:
+          type: integer
+          format: int64
+        note:
+          type: integer
+          minimum: 0
+          maximum: 20
+        commentaire:
+          type: string
+        rendueAt:
+          type: string
+          format: date-time
+        statut:
+          type: string
+          enum: [assignee, rendue]
+
+    LigneTableau:
+      type: object
+      required: [etudiantId, nom, presences, exercicesDeposes, moyenne, relecturesEnAttente]
+      properties:
+        etudiantId:
+          type: integer
+          format: int64
+        nom:
+          type: string
+        presences:
+          type: integer
+          description: Nombre de présences de l'étudiant (toutes sessions de la promotion)
+        exercicesDeposes:
+          type: integer
+        moyenne:
+          type: number
+          nullable: true
+          description: Moyenne des notes reçues, calculée côté API (F3) ; null si aucune note
+        relecturesEnAttente:
+          type: integer
+          description: Relectures assignées non encore rendues (Q11, Q16)

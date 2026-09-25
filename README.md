@@ -12,14 +12,33 @@
 # 1. Backend — http://localhost:8080 (données de démonstration chargées par Flyway)
 cd backend && ./mvnw spring-boot:run
 
-# Si le port 8080 est déjà occupé sur votre poste :
-SERVER_PORT=8081 ./mvnw spring-boot:run   # puis adapter l'URL de l'API (frontend/src/environments)
+# Si le port 8080 est déjà occupé (ex. Keycloak lancé sur le poste) : voir la section juste en dessous.
 
 # 2. Frontend — http://localhost:4200 (deuxième terminal)
 cd frontend && npm install && npm start
 
 # 3. Ouvrir http://localhost:4200
 ```
+
+### Si le port 8080 est déjà occupé (cas fréquent : Keycloak lancé en local)
+
+Le backend Spring Boot ne peut pas démarrer si un autre service écoute déjà sur 8080
+(erreur « Port 8080 was already in use »). Procédure de contournement, testée :
+
+```bash
+# 1. Démarrer le backend sur un port libre :
+cd backend && SERVER_PORT=8081 ./mvnw spring-boot:run
+
+# 2. Vérifier qu'il répond :
+curl http://localhost:8081/api/health    # {"status":"OK","application":"kfokam48-presence"}
+
+# 3. Pointer le frontend vers ce port : dans frontend/src/environments/environment.ts,
+#    remplacer apiUrl: 'http://localhost:8080' par apiUrl: 'http://localhost:8081'
+#    puis (re)lancer npm start.
+```
+
+Aucun autre réglage n'est nécessaire : la configuration CORS du backend autorise
+déjà l'origine http://localhost:4200, quel que soit le port du backend.
 
 ## Données de démonstration (jamais vide à l'ouverture)
 

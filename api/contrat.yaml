@@ -278,6 +278,15 @@ paths:
   /api/relectures/{id}:
     post:
       summary: Rendre une relecture (opération imposée)
+      # CHANGEMENT DE BESOIN ÉTAPE 3 (double relecture) — B2 respecté :
+      # chemin, verbe et codes de statut INCHANGÉS. Le corps accepte désormais
+      # un champ additionnel OPTIONNEL `relecteurId` : chaque relecteur soumet SA
+      # propre affectation (deux affectations coexistent par exercice, une par
+      # couple (exercice, relecteur) — migration V9). Absent avec une seule
+      # affectation, le comportement historique est conservé ; présent, il
+      # désigne l'affectation du relecteur appelant (403 si auteur, 409 si déjà
+      # rendue — RG10 désormais PAR AFFECTATION). Réponse inchangée + champ
+      # additionnel `affectations` (état des relectures de l'exercice).
       description: |
         Note entière 0–20 (RG8) + commentaire. La relecture est définitive dès
         l'envoi (RG10, Q15 tranché contre Q10 — cahier des charges §7) :
@@ -300,9 +309,17 @@ paths:
                   maximum: 20
                 commentaire:
                   type: string
+                relecteurId:
+                  type: integer
+                  format: int64
+                  description: |
+                    Étape 3 (double relecture) — optionnel : désigne SA propre
+                    affectation quand l'exercice a deux relecteurs (requis dans
+                    ce cas, 400 RELECTEUR_REQUIS sinon). Ignoré si une seule
+                    affectation existe (rétrocompatibilité).
       responses:
         '200':
-          description: Relecture rendue (définitive, RG10)
+          description: Relecture rendue (définitive, RG10 — désormais par affectation)
           content:
             application/json:
               schema:

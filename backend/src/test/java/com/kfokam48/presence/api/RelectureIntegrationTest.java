@@ -65,7 +65,7 @@ class RelectureIntegrationTest {
                         .contentType("application/json")
                         .content("{\"note\": 15, \"commentaire\": \"Bon travail, justifications claires.\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(exerciceId))
+                .andExpect(jsonPath("$.exerciceId").value(exerciceId))
                 .andExpect(jsonPath("$.note").value(15))
                 .andExpect(jsonPath("$.statut").value("rendue"));
     }

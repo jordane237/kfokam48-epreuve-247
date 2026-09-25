@@ -1,5 +1,5 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { inject } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Observable, throwError, catchError } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ApiError } from './api-error';
 
@@ -9,15 +9,20 @@ import { ApiError } from './api-error';
  * et passent tous par `http` — aucun appel dispersé dans les composants.
  */
 export abstract class ApiServiceBase {
-  protected readonly http = inject(HttpClient);
   protected readonly apiUrl = environment.apiUrl;
 
   /**
-   * Normalise toute erreur vers le format du contrat { code, message }.
-   * Si le serveur renvoie déjà ce format, il est conservé tel quel ;
-   * sinon (réseau indisponible, erreur inattendue), une erreur générique
-   * est produite — jamais de stack trace affichée à l'utilisateur.
+   * Enveloppe une requête : normalise toute erreur vers le format du contrat
+   * { code, message }. Si le serveur renvoie déjà ce format il est conservé ;
+   * sinon (réseau indisponible, erreur inattendue) une erreur générique est
+   * produite — jamais de stack trace affichée à l'utilisateur.
    */
+  protected envelopper<T>(requete: Observable<T>): Observable<T> {
+    return requete.pipe(
+      catchError((err: HttpErrorResponse) => throwError(() => this.extraireErreur(err)))
+    );
+  }
+
   protected extraireErreur(err: HttpErrorResponse): ApiError {
     const corps = err.error as Partial<ApiError> | null;
     if (corps && typeof corps.code === 'string' && typeof corps.message === 'string') {

@@ -1,0 +1,93 @@
+package com.kfokam48.presence.service;
+
+import com.kfokam48.presence.api.dto.MarquerPresenceRequest;
+import com.kfokam48.presence.api.dto.PresenceDto;
+import com.kfokam48.presence.api.error.BusinessException;
+import com.kfokam48.presence.entity.Presence;
+import com.kfokam48.presence.entity.Session;
+import com.kfokam48.presence.entity.TentativeCode;
+import com.kfokam48.presence.repository.PresenceRepository;
+import com.kfokam48.presence.repository.SessionRepository;
+import com.kfokam48.presence.repository.TentativeCodeRepository;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * EF2/EF3 : marquer sa présence. Ordre de vérification imposé (D3) :
+ * blocage RG4 actif → code inconnu 400 → code expiré 410 (RG1) →
+ * déjà présent 409 (RG2) → enregistrement 201.
+ */
+@Service
+public class PresenceService {
+
+    /** RG3/Q4 : au bout de 5 erreurs, blocage de 2 minutes. */
+    static final int MAX_ECHECS = 5;
+    static final Duration DUREE_BLOCAGE = Duration.ofMinutes(2);
+
+    private final PresenceRepository presences;
+    private final SessionRepository sessions;
+    private final TentativeCodeRepository tentatives;
+
+    public PresenceService(PresenceRepository presences, SessionRepository sessions,
+            TentativeCodeRepository tentatives) {
+        this.presences = presences;
+        this.sessions = sessions;
+        this.tentatives = tentatives;
+    }
+
+    @Transactional
+    public PresenceDto marquer(MarquerPresenceRequest requete) {
+        LocalDateTime maintenant = LocalDateTime.now();
+        TentativeCode tentative = tentatives.findByEtudiantId(requete.etudiantId()).orElse(null);
+
+        // RG4 : blocage actif → 429, même si le code saisi est correct.
+        if (tentative != null && tentative.getBloqueJusqua() != null) {
+            if (maintenant.isBefore(tentative.getBloqueJusqua())) {
+                throw new BusinessException(HttpStatus.TOO_MANY_REQUESTS, "TROP_TENTATIVES",
+                        "Trop de tentatives. Réessayez dans 2 minutes.");
+            }
+            tentative.reinitialiser(); // blocage expiré → compteur remis à zéro
+        }
+
+        Session session = sessions.findByCode(requete.code()).orElse(null);
+        if (session == null) {
+            echouer(tentative, requete.etudiantId(), maintenant);
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "CODE_INCONNU",
+                    "Ce code de présence n'existe pas.");
+        }
+
+        // RG1 : au-delà de expirationAt, le code ne marche plus.
+        if (maintenant.isAfter(session.getExpirationAt())) {
+            echouer(tentative, requete.etudiantId(), maintenant);
+            throw new BusinessException(HttpStatus.GONE, "CODE_EXPIRE",
+                    "Le code de présence a expiré.");
+        }
+
+        // RG2 : un seul marquage par étudiant et par session.
+        if (presences.existsBySessionIdAndEtudiantId(session.getId(), requete.etudiantId())) {
+            throw new BusinessException(HttpStatus.CONFLICT, "DEJA_PRESENT",
+                    "Cet étudiant a déjà marqué sa présence.");
+        }
+
+        // Succès : le compteur d'échecs est remis à zéro (RG4).
+        if (tentative != null) {
+            tentative.reinitialiser();
+        }
+
+        Presence presence = presences.save(
+                new Presence(session.getId(), requete.etudiantId(), Presence.Source.ETUDIANT, maintenant));
+        return new PresenceDto(presence.getId(), presence.getSessionId(),
+                presence.getEtudiantId(), presence.getSource().name());
+    }
+
+    private void echouer(TentativeCode tentative, Long etudiantId, LocalDateTime maintenant) {
+        if (tentative == null) {
+            tentative = new TentativeCode(etudiantId);
+        }
+        tentative.enregistrerEchec(MAX_ECHECS, DUREE_BLOCAGE, maintenant);
+        tentatives.save(tentative);
+    }
+}

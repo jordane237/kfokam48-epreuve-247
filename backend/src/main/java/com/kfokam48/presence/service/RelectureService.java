@@ -1,13 +1,16 @@
 package com.kfokam48.presence.service;
 
 import com.kfokam48.presence.api.dto.RelectureDto;
+import com.kfokam48.presence.api.dto.RelectureEnAttenteDto;
 import com.kfokam48.presence.api.dto.RendreRelectureRequest;
+import com.kfokam48.presence.api.dto.RetourDto;
 import com.kfokam48.presence.api.error.BusinessException;
 import com.kfokam48.presence.entity.Exercice;
 import com.kfokam48.presence.entity.Relecture;
 import com.kfokam48.presence.repository.ExerciceRepository;
 import com.kfokam48.presence.repository.RelectureRepository;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +30,42 @@ public class RelectureService {
     public RelectureService(RelectureRepository relectures, ExerciceRepository exercices) {
         this.relectures = relectures;
         this.exercices = exercices;
+    }
+
+    /**
+     * GET /api/relectures/en-attente?relecteurId= — opération ajoutée (libre, contrat) :
+     * les relectures assignées et pas encore rendues d'un étudiant (écran relecteur).
+     * Aucune identité d'auteur n'est exposée (Q8).
+     */
+    @Transactional(readOnly = true)
+    public List<RelectureEnAttenteDto> listerEnAttente(Long relecteurId) {
+        return relectures.findByRelecteurIdAndStatut(relecteurId, Relecture.Statut.assignee).stream()
+                .map(r -> exercices.findById(r.getExerciceId())
+                        .map(e -> new RelectureEnAttenteDto(e.getId(), e.getLien(), r.getAssigneeAt()))
+                        .orElse(null))
+                .filter(dto -> dto != null)
+                .toList();
+    }
+
+    /**
+     * EF11/Q8 : la note et le commentaire sans le nom du relecteur — le retour
+     * est consultable dès qu'une relecture a été rendue.
+     */
+    @Transactional(readOnly = true)
+    public RetourDto consulterRetour(Long exerciceId) {
+        Exercice exercice = exercices.findById(exerciceId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "EXERCICE_INCONNU",
+                        "Cet exercice n'existe pas."));
+        Relecture relecture = relectures.findByExerciceId(exerciceId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "RELECTURE_INCONNUE",
+                        "Aucune relecture n'est assignée pour cet exercice."));
+        if (relecture.getStatut() != Relecture.Statut.rendue || relecture.getNote() == null) {
+            throw new BusinessException(HttpStatus.CONFLICT, "RELECTURE_PAS_ENCORE_RENDUE",
+                    "La relecture n'a pas encore été rendue.");
+        }
+        // Q8 : aucun champ ne mentionne le relecteur — ni son id, ni son nom.
+        return new RetourDto(exercice.getId(), relecture.getNote(),
+                relecture.getCommentaire(), relecture.getRendueAt());
     }
 
     @Transactional

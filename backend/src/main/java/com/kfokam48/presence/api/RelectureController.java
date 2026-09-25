@@ -3,9 +3,7 @@ package com.kfokam48.presence.api;
 import com.kfokam48.presence.api.dto.RelectureDto;
 import com.kfokam48.presence.api.dto.RelectureEnAttenteDto;
 import com.kfokam48.presence.api.dto.RendreRelectureRequest;
-import com.kfokam48.presence.entity.Relecture;
-import com.kfokam48.presence.repository.ExerciceRepository;
-import com.kfokam48.presence.repository.RelectureRepository;
+import com.kfokam48.presence.api.dto.RetourDto;
 import com.kfokam48.presence.service.RelectureService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -25,34 +23,32 @@ import org.springframework.web.bind.annotation.RestController;
 public class RelectureController {
 
     private final RelectureService service;
-    private final RelectureRepository relectures;
-    private final ExerciceRepository exercices;
 
-    public RelectureController(RelectureService service, RelectureRepository relectures,
-            ExerciceRepository exercices) {
+    public RelectureController(RelectureService service) {
         this.service = service;
-        this.relectures = relectures;
-        this.exercices = exercices;
     }
 
     /**
-     * GET /api/relectures/en-attente?relecteurId= — opération ajoutée (libre, contrat) :
-     * les relectures assignées et pas encore rendues d'un étudiant (écran relecteur).
+     * GET /api/relectures/en-attente?relecteurId= — opération ajoutée (libre, contrat).
      * Aucune identité d'auteur n'est exposée (Q8).
      */
     @GetMapping("/api/relectures/en-attente")
     public List<RelectureEnAttenteDto> enAttente(@RequestParam Long relecteurId) {
-        return relectures.findByRelecteurIdAndStatut(relecteurId, Relecture.Statut.assignee).stream()
-                .map(r -> exercices.findById(r.getExerciceId())
-                        .map(e -> new RelectureEnAttenteDto(e.getId(), e.getLien(), r.getAssigneeAt()))
-                        .orElse(null))
-                .filter(dto -> dto != null)
-                .toList();
+        return service.listerEnAttente(relecteurId);
     }
 
     @PostMapping("/api/relectures/{id}")
     public ResponseEntity<RelectureDto> rendre(@PathVariable Long id,
             @Valid @RequestBody RendreRelectureRequest requete) {
         return ResponseEntity.ok(service.rendre(id, requete));
+    }
+
+    /**
+     * GET /api/exercices/{id}/retour — opération ajoutée (EF11, Q8) : l'étudiant
+     * relu consulte sa note et le commentaire, sans jamais voir le relecteur.
+     */
+    @GetMapping("/api/exercices/{id}/retour")
+    public ResponseEntity<RetourDto> retour(@PathVariable Long id) {
+        return ResponseEntity.ok(service.consulterRetour(id));
     }
 }

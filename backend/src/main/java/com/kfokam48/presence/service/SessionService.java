@@ -2,6 +2,7 @@ package com.kfokam48.presence.service;
 
 import com.kfokam48.presence.api.dto.OuvrirSessionRequest;
 import com.kfokam48.presence.api.dto.SessionCreeeDto;
+import com.kfokam48.presence.api.dto.SessionDto;
 import com.kfokam48.presence.api.error.BusinessException;
 import com.kfokam48.presence.entity.Session;
 import com.kfokam48.presence.repository.PromotionRepository;
@@ -55,6 +56,36 @@ public class SessionService {
 
         return new SessionCreeeDto(session.getId(), session.getCode(),
                 session.getOuvertureAt(), session.getExpirationAt());
+    }
+
+    /**
+     * EF7/RG12 : clôture manuelle du formateur — ferme le dépôt d'exercices et
+     * la présence manuelle. Action distincte de l'expiration du code (RG1, Q12).
+     */
+    @Transactional
+    public SessionDto cloturer(Long id) {
+        Session session = sessions.findById(id)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "SESSION_INCONNUE",
+                        "Cette session n'existe pas."));
+        if (session.getClotureAt() != null) {
+            throw new BusinessException(HttpStatus.CONFLICT, "SESSION_DEJA_CLOTUREE",
+                    "La session est déjà clôturée.");
+        }
+        session.setClotureAt(LocalDateTime.now());
+        return versDto(sessions.save(session));
+    }
+
+    /** Vue complète d'une session (contrat — schéma Session, inclut clotureAt). */
+    @Transactional(readOnly = true)
+    public SessionDto consulter(Long id) {
+        return versDto(sessions.findById(id)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "SESSION_INCONNUE",
+                        "Cette session n'existe pas.")));
+    }
+
+    private SessionDto versDto(Session s) {
+        return new SessionDto(s.getId(), s.getTitre(), s.getPromotionId(), s.getCode(),
+                s.getOuvertureAt(), s.getExpirationAt(), s.getClotureAt());
     }
 
     private String genererCode() {

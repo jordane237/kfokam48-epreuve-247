@@ -50,6 +50,7 @@
         <tr>
           <th>Étudiant</th>
           <th>Présences</th>
+          <th>Dont ajoutées par le formateur</th>
           <th>Exercices déposés</th>
           <th>Moyenne</th>
           <th>Relectures en attente</th>
@@ -60,6 +61,14 @@
           <tr>
             <td>{{ l.nom }}</td>
             <td>{{ l.presences }}</td>
+            <!-- Q14/RG11 : « ajouté par le formateur » doit se voir distinctement. -->
+            <td>
+              @if (l.presencesFormateur > 0) {
+                <span class="badge badge-attente">{{ l.presencesFormateur }} par le formateur</span>
+              } @else {
+                —
+              }
+            </td>
             <td>{{ l.exercicesDeposes }}</td>
             <!-- F3 : la moyenne vient telle quelle de l'API, jamais recalculée ici. -->
             <td>{{ l.moyenne === null ? '—' : l.moyenne }}</td>

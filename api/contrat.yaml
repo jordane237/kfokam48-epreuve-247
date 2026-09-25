@@ -666,6 +666,9 @@ components:
         presences:
           type: integer
           description: Nombre de présences de l'étudiant (toutes sessions de la promotion)
+        presencesFormateur:
+          type: integer
+          description: Présences ajoutées à la main par le formateur (source=FORMATEUR, RG11/Q14) — pour qu'« ça se voie » distinctement dans le tableau
         exercicesDeposes:
           type: integer
         moyenne:

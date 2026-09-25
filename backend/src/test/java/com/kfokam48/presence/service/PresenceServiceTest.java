@@ -13,6 +13,7 @@ import com.kfokam48.presence.api.error.BusinessException;
 import com.kfokam48.presence.entity.Presence;
 import com.kfokam48.presence.entity.Session;
 import com.kfokam48.presence.entity.TentativeCode;
+import com.kfokam48.presence.repository.EtudiantRepository;
 import com.kfokam48.presence.repository.PresenceRepository;
 import com.kfokam48.presence.repository.SessionRepository;
 import com.kfokam48.presence.repository.TentativeCodeRepository;
@@ -45,6 +46,8 @@ class PresenceServiceTest {
     void setUp() {
         sessions = mock(SessionRepository.class);
         presences = mock(PresenceRepository.class);
+        EtudiantRepository etudiants = mock(EtudiantRepository.class);
+        when(etudiants.existsById(anyLong())).thenReturn(true);
         TentativeCodeRepository tentatives = mock(TentativeCodeRepository.class);
         tentativesEnMemoire = new HashMap<>();
 
@@ -70,7 +73,7 @@ class PresenceServiceTest {
             return Optional.empty();
         });
 
-        service = new PresenceService(presences, sessions, tentatives);
+        service = new PresenceService(presences, sessions, tentatives, etudiants);
     }
 
     private BusinessException marquer(String code, long etudiantId) {

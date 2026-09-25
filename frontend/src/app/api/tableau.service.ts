@@ -7,6 +7,7 @@ export interface LigneTableau {
   etudiantId: number;
   nom: string;
   presences: number;
+  presencesFormateur: number;
   exercicesDeposes: number;
   moyenne: number | null;
   relecturesEnAttente: number;

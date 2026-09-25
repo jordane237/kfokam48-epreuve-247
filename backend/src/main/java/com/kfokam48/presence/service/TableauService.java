@@ -3,6 +3,7 @@ package com.kfokam48.presence.service;
 import com.kfokam48.presence.api.dto.LigneTableauDto;
 import com.kfokam48.presence.api.error.BusinessException;
 import com.kfokam48.presence.entity.Exercice;
+import com.kfokam48.presence.entity.Presence;
 import com.kfokam48.presence.entity.Relecture;
 import com.kfokam48.presence.repository.EtudiantRepository;
 import com.kfokam48.presence.repository.ExerciceRepository;
@@ -86,6 +87,15 @@ public class TableauService {
                 .filter(r -> r.getStatut() == Relecture.Statut.assignee)
                 .collect(Collectors.groupingBy(Relecture::getRelecteurId, Collectors.counting()));
 
+        // Q14/RG11 : les présences « ajoutées par le formateur » doivent se voir
+        // distinctement dans le tableau — comptées à part des marquages étudiants.
+        List<Presence> toutesPresences = sessionIds.isEmpty()
+                ? List.of()
+                : presences.findBySessionIdIn(sessionIds);
+        Map<Long, Long> presencesFormateurParEtudiant = toutesPresences.stream()
+                .filter(p -> p.getSource() == Presence.Source.FORMATEUR)
+                .collect(Collectors.groupingBy(Presence::getEtudiantId, Collectors.counting()));
+
         return etudiantsPromo.stream()
                 .map(etudiant -> {
                     Long id = etudiant.getId();
@@ -103,6 +113,7 @@ public class TableauService {
                             : notes.stream().mapToInt(Integer::intValue).average().orElse(0);
 
                     return new LigneTableauDto(id, etudiant.getNom(), nbPresences,
+                            presencesFormateurParEtudiant.getOrDefault(id, 0L),
                             nbExercices, moyenne,
                             enAttenteParRelecteur.getOrDefault(id, 0L));
                 })

@@ -1,11 +1,13 @@
 package com.kfokam48.presence.service;
 
+import com.kfokam48.presence.api.dto.AjouterPresenceManuelleRequest;
 import com.kfokam48.presence.api.dto.MarquerPresenceRequest;
 import com.kfokam48.presence.api.dto.PresenceDto;
 import com.kfokam48.presence.api.error.BusinessException;
 import com.kfokam48.presence.entity.Presence;
 import com.kfokam48.presence.entity.Session;
 import com.kfokam48.presence.entity.TentativeCode;
+import com.kfokam48.presence.repository.EtudiantRepository;
 import com.kfokam48.presence.repository.PresenceRepository;
 import com.kfokam48.presence.repository.SessionRepository;
 import com.kfokam48.presence.repository.TentativeCodeRepository;
@@ -30,12 +32,14 @@ public class PresenceService {
     private final PresenceRepository presences;
     private final SessionRepository sessions;
     private final TentativeCodeRepository tentatives;
+    private final EtudiantRepository etudiants;
 
     public PresenceService(PresenceRepository presences, SessionRepository sessions,
-            TentativeCodeRepository tentatives) {
+            TentativeCodeRepository tentatives, EtudiantRepository etudiants) {
         this.presences = presences;
         this.sessions = sessions;
         this.tentatives = tentatives;
+        this.etudiants = etudiants;
     }
 
     @Transactional
@@ -79,6 +83,36 @@ public class PresenceService {
 
         Presence presence = presences.save(
                 new Presence(session.getId(), requete.etudiantId(), Presence.Source.ETUDIANT, maintenant));
+        return new PresenceDto(presence.getId(), presence.getSessionId(),
+                presence.getEtudiantId(), presence.getSource().name());
+    }
+
+    /**
+     * EF12/RG11 : présence ajoutée à la main par le formateur — source=FORMATEUR
+     * pour que « ça se voie » dans le tableau (Q14). Impossible après clôture (RG12) ;
+     * en revanche possible après expiration du code (Q12 : clôture ≠ expiration).
+     */
+    @Transactional
+    public PresenceDto presenceManuelle(Long sessionId, AjouterPresenceManuelleRequest requete) {
+        Session session = sessions.findById(sessionId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "SESSION_INCONNUE",
+                        "Cette session n'existe pas."));
+        if (session.getClotureAt() != null) {
+            throw new BusinessException(HttpStatus.CONFLICT, "SESSION_CLOTUREE",
+                    "La session est clôturée, la présence ne peut plus être ajoutée.");
+        }
+        if (!etudiants.existsById(requete.etudiantId())) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "ETUDIANT_INCONNU",
+                    "Cet étudiant n'existe pas.");
+        }
+        // RG2 : un seul marquage par étudiant et par session, quelle que soit la source.
+        if (presences.existsBySessionIdAndEtudiantId(sessionId, requete.etudiantId())) {
+            throw new BusinessException(HttpStatus.CONFLICT, "DEJA_PRESENT",
+                    "Cet étudiant a déjà marqué sa présence.");
+        }
+
+        Presence presence = presences.save(new Presence(sessionId, requete.etudiantId(),
+                Presence.Source.FORMATEUR, LocalDateTime.now()));
         return new PresenceDto(presence.getId(), presence.getSessionId(),
                 presence.getEtudiantId(), presence.getSource().name());
     }

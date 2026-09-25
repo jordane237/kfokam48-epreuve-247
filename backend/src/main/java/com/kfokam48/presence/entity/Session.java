@@ -71,4 +71,9 @@ public class Session {
     public LocalDateTime getClotureAt() {
         return clotureAt;
     }
+
+    /** RG12 : renseigné par la clôture manuelle du formateur. */
+    public void setClotureAt(LocalDateTime clotureAt) {
+        this.clotureAt = clotureAt;
+    }
 }

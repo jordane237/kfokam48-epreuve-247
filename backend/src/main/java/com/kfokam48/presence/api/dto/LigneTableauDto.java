@@ -6,5 +6,6 @@ package com.kfokam48.presence.api.dto;
  * N'expose jamais l'identité des relecteurs (Q8).
  */
 public record LigneTableauDto(Long etudiantId, String nom, long presences,
-        long exercicesDeposes, Double moyenne, long relecturesEnAttente) {
+        long presencesFormateur, long exercicesDeposes, Double moyenne,
+        long relecturesEnAttente) {
 }

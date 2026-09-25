@@ -1,0 +1,67 @@
+<h2>Espace étudiant</h2>
+
+<section class="carte">
+  <h3>1. Qui es-tu ?</h3>
+  @if (listeEnChargement()) {
+    <p class="chargement">Chargement de la liste…</p>
+  } @else if (erreurListe(); as err) {
+    <p class="erreur" role="alert">{{ err.message }} ({{ err.code }})</p>
+  } @else {
+    <label>
+      Choisis ton nom
+      <select name="etudiantId" [(ngModel)]="etudiantId">
+        <option [ngValue]="null" disabled>— choisir —</option>
+        @for (e of etudiants(); track e.id) {
+          <option [ngValue]="e.id">{{ e.nom }}</option>
+        }
+      </select>
+    </label>
+  }
+</section>
+
+<section class="carte">
+  <h3>2. Marquer ta présence</h3>
+  <form (ngSubmit)="marquerPresence()">
+    <label>
+      Code de présence
+      <input type="text" name="code" [(ngModel)]="code" placeholder="Ex. VPB2E3" autocomplete="off" />
+    </label>
+    <button type="submit" [disabled]="presenceEnCours()">
+      {{ presenceEnCours() ? 'Envoi…' : 'Marquer ma présence' }}
+    </button>
+  </form>
+
+  @if (erreurPresence(); as err) {
+    <p class="erreur" role="alert">
+      {{ err.message }} ({{ err.code }})
+      @if (err.code === 'TROP_TENTATIVES') {
+        — réessaie dans 2 minutes (RG4).
+      }
+    </p>
+  } @else if (presenceConfirmee(); as p) {
+    <p class="succes">Présence enregistrée ✅ (source : {{ p.source }})</p>
+  }
+</section>
+
+<section class="carte">
+  <h3>3. Déposer ton exercice</h3>
+  <form (ngSubmit)="deposer()">
+    <label>
+      Numéro de la session
+      <input type="number" name="sessionId" [(ngModel)]="sessionId" min="1" />
+    </label>
+    <label>
+      Lien de ton exercice
+      <input type="url" name="lien" [(ngModel)]="lien" placeholder="https://…" />
+    </label>
+    <button type="submit" [disabled]="depotEnCours()">
+      {{ depotEnCours() ? 'Dépôt…' : 'Déposer' }}
+    </button>
+  </form>
+
+  @if (erreurDepot(); as err) {
+    <p class="erreur" role="alert">{{ err.message }} ({{ err.code }})</p>
+  } @else if (exerciceDepose(); as e) {
+    <p class="succes">Exercice déposé ✅ — statut : {{ e.statut }}</p>
+  }
+</section>

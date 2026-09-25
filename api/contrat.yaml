@@ -335,6 +335,40 @@ paths:
                 code: RELECTURE_DEJA_RENDUE
                 message: Cette relecture a déjà été rendue et est définitive.
 
+  /api/etudiants:
+    get:
+      summary: Liste des étudiants d'une promotion (opération ajoutée — Q1)
+      description: |
+        L'étudiant choisit son nom dans une liste (Q1, pas de mot de passe) :
+        le frontend charge cette liste ici. Aucune donnée sensible exposée.
+      tags: [Etudiants]
+      operationId: listerEtudiants
+      parameters:
+        - name: promotionId
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Étudiants de la promotion
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Etudiant'
+        '404':
+          description: Promotion inconnue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+              example:
+                code: PROMOTION_INCONNUE
+                message: Cette promotion n'existe pas.
+
   /api/tableau:
     get:
       summary: Tableau de suivi du formateur (opération imposée)
@@ -570,6 +604,16 @@ components:
         statut:
           type: string
           enum: [assignee, rendue]
+
+    Etudiant:
+      type: object
+      required: [id, nom]
+      properties:
+        id:
+          type: integer
+          format: int64
+        nom:
+          type: string
 
     LigneTableau:
       type: object

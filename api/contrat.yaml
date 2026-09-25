@@ -369,6 +369,31 @@ paths:
                 code: PROMOTION_INCONNUE
                 message: Cette promotion n'existe pas.
 
+  /api/relectures/en-attente:
+    get:
+      summary: Relectures à faire d'un étudiant (opération ajoutée — écran relecteur)
+      description: |
+        Les relectures assignées à cet étudiant et pas encore rendues (Q11, Q16).
+        Expose le lien de l'exercice, jamais l'identité de l'auteur (Q8).
+      tags: [Relectures]
+      operationId: relecturesEnAttente
+      parameters:
+        - name: relecteurId
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Relectures à faire
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RelectureEnAttente'
+
   /api/tableau:
     get:
       summary: Tableau de suivi du formateur (opération imposée)
@@ -604,6 +629,20 @@ components:
         statut:
           type: string
           enum: [assignee, rendue]
+
+    RelectureEnAttente:
+      type: object
+      required: [exerciceId, lien, assigneeAt]
+      properties:
+        exerciceId:
+          type: integer
+          format: int64
+        lien:
+          type: string
+          format: uri
+        assigneeAt:
+          type: string
+          format: date-time
 
     Etudiant:
       type: object

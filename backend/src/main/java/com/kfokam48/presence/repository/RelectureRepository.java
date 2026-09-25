@@ -16,4 +16,7 @@ public interface RelectureRepository extends JpaRepository<Relecture, Long> {
 
     /** Tableau RG15 : relectures des exercices d'une promotion (notes reçues, en attente). */
     List<Relecture> findByExerciceIdIn(Collection<Long> exerciceIds);
+
+    /** Écran relecteur : les relectures assignées et pas encore rendues d'un étudiant. */
+    List<Relecture> findByRelecteurIdAndStatut(Long relecteurId, Relecture.Statut statut);
 }

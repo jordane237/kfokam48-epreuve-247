@@ -11,6 +11,8 @@ import com.kfokam48.presence.repository.PresenceRepository;
 import com.kfokam48.presence.repository.PromotionRepository;
 import com.kfokam48.presence.repository.RelectureRepository;
 import com.kfokam48.presence.repository.SessionRepository;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -75,12 +77,20 @@ public class TableauService {
                 ? List.of()
                 : relectures.findByExerciceIdIn(idsExercices);
 
-        // Notes reçues par auteur : seules les relectures rendues portent une note (RG10).
-        Map<Long, List<Integer>> notesRecuesParAuteur = toutesRelectures.stream()
+        // Étape 3 : la moyenne est calculée PAR EXERCICE (moyenne des relectures
+        // rendues de cet exercice, provisoire si une seule) puis agrégée par auteur.
+        Map<Long, List<Relecture>> renduesParExercice = toutesRelectures.stream()
                 .filter(r -> r.getStatut() == Relecture.Statut.rendue && r.getNote() != null)
-                .collect(Collectors.groupingBy(
-                        r -> auteurParExercice.get(r.getExerciceId()),
-                        Collectors.mapping(Relecture::getNote, Collectors.toList())));
+                .collect(Collectors.groupingBy(Relecture::getExerciceId));
+
+        Map<Long, List<Double>> notesRecuesParAuteur = new HashMap<>();
+        renduesParExercice.forEach((exerciceId, rendues) -> {
+            double moyenneExercice = rendues.stream().mapToInt(Relecture::getNote).average().orElse(0);
+            Long auteur = auteurParExercice.get(exerciceId);
+            if (auteur != null) {
+                notesRecuesParAuteur.computeIfAbsent(auteur, k -> new ArrayList<>()).add(moyenneExercice);
+            }
+        });
 
         // Relectures en attente par relecteur (Q11, Q16).
         Map<Long, Long> enAttenteParRelecteur = toutesRelectures.stream()
@@ -107,10 +117,10 @@ public class TableauService {
                     long nbExercices = exercicesParEtudiant
                             .getOrDefault(id, List.of()).size();
 
-                    List<Integer> notes = notesRecuesParAuteur.get(id);
+                    List<Double> notes = notesRecuesParAuteur.get(id);
                     Double moyenne = (notes == null || notes.isEmpty())
                             ? null // F3 : null si aucune note, calculée côté API
-                            : notes.stream().mapToInt(Integer::intValue).average().orElse(0);
+                            : notes.stream().mapToDouble(Double::doubleValue).average().orElse(0);
 
                     return new LigneTableauDto(id, etudiant.getNom(), nbPresences,
                             presencesFormateurParEtudiant.getOrDefault(id, 0L),

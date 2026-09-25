@@ -1,1 +1,256 @@
-/* You can add global styles to this file, and also import other style files */
+/* ============================================================
+   KFOKAM48 — Design system global
+   Tokens + composants partagés (cartes, champs, boutons, tableaux,
+   retours d'état, badges). Polices système : aucun téléchargement.
+   ============================================================ */
+
+:root {
+  --fond: #f3f5fa;
+  --surface: #ffffff;
+  --texte: #1c2333;
+  --texte-doux: #5b6478;
+
+  --bordure: #e3e7f0;
+  --bordure-forte: #cdd4e4;
+
+  --primaire: #2f5cff;
+  --primaire-fonce: #1e44d8;
+  --primaire-doux: #e8eeff;
+
+  --succes: #177245;
+  --succes-fond: #e8f7ee;
+  --danger: #b3261e;
+  --danger-fond: #fdecea;
+  --attention: #9a6700;
+  --attention-fond: #fff4d5;
+
+  --radius: 12px;
+  --ombre: 0 1px 2px rgba(28, 35, 51, 0.06), 0 8px 24px rgba(28, 35, 51, 0.07);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--texte);
+  background:
+    radial-gradient(1100px 420px at 85% -10%, #e4ebff 0%, transparent 60%),
+    radial-gradient(900px 380px at -10% 0%, #eef1ff 0%, transparent 55%),
+    var(--fond);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 { font-size: 1.45rem; line-height: 1.25; margin: 0; }
+h2 { font-size: 1.25rem; margin: 1.4rem 0 0.9rem; }
+h3 { font-size: 1.02rem; margin: 0 0 0.75rem; }
+
+a {
+  color: var(--primaire);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Formulaires ---------- */
+
+label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.92rem;
+  margin-bottom: 0.85rem;
+}
+
+input,
+select,
+textarea {
+  display: block;
+  width: 100%;
+  padding: 0.62rem 0.75rem;
+  margin-top: 0.3rem;
+  font: inherit;
+  color: var(--texte);
+  background: var(--surface);
+  border: 1.5px solid var(--bordure-forte);
+  border-radius: 10px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--primaire);
+  box-shadow: 0 0 0 3px var(--primaire-doux);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9aa2b5;
+}
+
+/* ---------- Boutons ---------- */
+
+button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.15rem;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #fff;
+  background: var(--primaire);
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+
+button:hover:not(:disabled) {
+  background: var(--primaire-fonce);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+/* Bouton secondaire (actions non-submit) */
+button[type="button"] {
+  color: var(--primaire);
+  background: var(--surface);
+  border-color: var(--bordure-forte);
+}
+
+button[type="button"]:hover:not(:disabled) {
+  background: var(--primaire-doux);
+  border-color: var(--primaire);
+}
+
+/* ---------- Cartes ---------- */
+
+.carte {
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius);
+  box-shadow: var(--ombre);
+  padding: 1.1rem 1.2rem;
+  margin-bottom: 1rem;
+  max-width: 920px;
+}
+
+.carte h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ---------- Retours d'état ---------- */
+
+.erreur,
+.succes,
+.chargement {
+  margin: 0.75rem 0 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
+}
+
+.erreur {
+  color: var(--danger);
+  background: var(--danger-fond);
+  border: 1px solid currentColor;
+}
+
+.succes {
+  color: var(--succes);
+  background: var(--succes-fond);
+  border: 1px solid currentColor;
+}
+
+.chargement {
+  color: var(--texte-doux);
+  background: transparent;
+  border: 1px dashed var(--bordure-forte);
+  font-style: italic;
+}
+
+/* ---------- Tableaux ---------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.9rem;
+  font-size: 0.95rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.6rem 0.7rem;
+  border-bottom: 1px solid var(--bordure);
+}
+
+th {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--texte-doux);
+  background: #f8f9fd;
+}
+
+tbody tr:hover {
+  background: #f8faff;
+}
+
+/* ---------- Badges de statut (cycle de vie D4) ---------- */
+
+.badge {
+  display: inline-block;
+  padding: 0.14rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.badge-depose { background: #eef0f5; color: var(--texte-doux); }
+.badge-assigne { background: var(--primaire-doux); color: var(--primaire-fonce); }
+.badge-relu { background: var(--succes-fond); color: var(--succes); }
+.badge-attente { background: var(--attention-fond); color: var(--attention); }
+
+/* ---------- Responsive (ENF1) ---------- */
+
+@media (max-width: 640px) {
+  .carte {
+    padding: 0.9rem;
+    border-radius: 10px;
+  }
+
+  h2 {
+    margin-top: 1rem;
+  }
+
+  /* Les tableaux restent lisibles sans casser la mise en page. */
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}

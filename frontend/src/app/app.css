@@ -1,0 +1,103 @@
+.entete {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.25rem;
+  padding: 0.7rem 1.15rem;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--bordure);
+}
+
+.marque {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--texte);
+}
+
+.marque:hover {
+  text-decoration: none;
+}
+
+.point {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primaire), #7b9bff);
+  box-shadow: 0 0 0 4px var(--primaire-doux);
+}
+
+.marque-texte {
+  display: flex;
+  flex-direction: column;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+}
+
+.marque-texte small {
+  font-weight: 500;
+  font-size: 0.72rem;
+  color: var(--texte-doux);
+  letter-spacing: 0.01em;
+}
+
+nav {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+nav a {
+  padding: 0.42rem 0.9rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--texte-doux);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+nav a:hover {
+  color: var(--primaire);
+  background: var(--primaire-doux);
+  text-decoration: none;
+}
+
+nav a.actif {
+  color: #fff;
+  background: var(--primaire);
+}
+
+main {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 1.25rem 1.15rem 2.5rem;
+}
+
+.pied {
+  border-top: 1px solid var(--bordure);
+  color: var(--texte-doux);
+  font-size: 0.82rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+.pied p {
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .entete {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .marque {
+    justify-content: center;
+  }
+}

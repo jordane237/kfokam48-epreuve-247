@@ -11,13 +11,16 @@ stateDiagram-v2
 
     en_attente_relecteur --> assigne : un étudiant devient disponible / le formateur relance l'assignation
 
-    assigne --> relu : POST /api/relectures/{id} note + commentaire (EF9 · RG8 RG10)
+    assigne --> relu_partiel : première relecture rendue — note PROVISOIRE (EF9 · RG10 étape 3)
+    relu_partiel --> relu : seconde relecture rendue — note finale (moyenne des deux)
+    assigne --> relu : les deux relectures rendues (ou un seul relecteur assigné qui rend)
     depose --> depose : PUT /api/exercices/{id} remplacement du lien<br/>si aucune relecture commencée (EF6 · RG6)
 
     note right of relu
         État final
-        RG10 : note définitive
-        dès l'envoi (Q15)
+        RG10 : chaque relecture individuelle est définitive dès l'envoi (Q15)
+        Étape 3 : note affichée = moyenne des relectures rendues,
+        PROVISOIRE si une seule (changement de besoin étape 3)
     end note
 
     note right of assigne
@@ -33,5 +36,7 @@ stateDiagram-v2
 | `depose → en_attente_relecteur` | Assignation impossible | RG14 : aucun étudiant présent autre que l'auteur ; visible dans le tableau (Q11) |
 | `depose → assigne` | Assignation automatique | RG13 : au hasard parmi les présents, hors auteur (RG7) |
 | `en_attente_relecteur → assigne` | Un candidat devient disponible | RG13, RG14 |
-| `assigne → relu` | `POST /api/relectures/{id}` | RG8 note entière 0–20, RG7 pas son propre exercice, RG10 définitive |
+| `assigne → relu_partiel` | Première relecture rendue (étape 3) | RG10 : définitive pour ce relecteur ; note de l'exercice PROVISOIRE |
+| `relu_partiel → relu` | Seconde relecture rendue (étape 3) | Note finale = moyenne des deux relectures rendues |
+| `assigne → relu` | Les deux rendues (ou un seul relecteur assigné qui rend) | RG8 note entière 0–20, RG7 pas son propre exercice, RG10 définitive |
 | `depose → depose` (auto) | `PUT /api/exercices/{id}` | RG6 : tant que personne n'a relu ; après, `409 RELECTURE_DEJA_COMMENCEE` |

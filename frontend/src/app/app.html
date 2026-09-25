@@ -1,13 +1,24 @@
 <header class="entete">
-  <h1>KFOKAM48 — Présence &amp; relecture</h1>
+  <a routerLink="/" class="marque">
+    <span class="point" aria-hidden="true"></span>
+    <span class="marque-texte">
+      KFOKAM48
+      <small>Présence &amp; relecture par les pairs</small>
+    </span>
+  </a>
+
   <nav>
-    <a routerLink="/formateur">Formateur</a>
-    <a routerLink="/etudiant">Étudiant</a>
-    <a routerLink="/relecteur">Relecteur</a>
+    <a routerLink="/formateur" routerLinkActive="actif">Formateur</a>
+    <a routerLink="/etudiant" routerLinkActive="actif">Étudiant</a>
+    <a routerLink="/relecteur" routerLinkActive="actif">Relecteur</a>
   </nav>
 </header>
 
 <main>
-  <!-- Les trois écrans (F2) arrivent avec les tickets T8, T9 et T10 -->
+  <!-- Les trois écrans (F2) : formateur, étudiant, relecteur -->
   <router-outlet />
 </main>
+
+<footer class="pied">
+  <p>KFOKAM48 — Épreuve finale fullstack · Présence &amp; relecture par les pairs</p>
+</footer>

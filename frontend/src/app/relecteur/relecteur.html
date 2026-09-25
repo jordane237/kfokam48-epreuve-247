@@ -67,7 +67,8 @@
       </p>
     } @else if (confirmation(); as c) {
       <p class="succes">
-        Relecture rendue ✅ — note {{ c.note }}/20 enregistrée. Elle est définitive (RG10).
+        Relecture rendue ✅ — <span class="note-finale">{{ c.note }}/20</span>
+        Elle est définitive (RG10).
       </p>
     }
   </section>

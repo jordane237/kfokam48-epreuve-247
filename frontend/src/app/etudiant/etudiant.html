@@ -65,3 +65,38 @@
     <p class="succes">Exercice déposé ✅ — statut : {{ e.statut }}</p>
   }
 </section>
+
+<section class="carte">
+  <h3>4. Ton retour de relecture</h3>
+  <form (ngSubmit)="chargerRetour()">
+    <label>
+      Numéro de ton exercice
+      <input type="number" name="retourExerciceId" [(ngModel)]="retourExerciceId" min="1" />
+    </label>
+    <button type="submit" [disabled]="retourEnChargement()">
+      {{ retourEnChargement() ? 'Chargement…' : 'Voir mon retour' }}
+    </button>
+  </form>
+
+  @if (erreurRetour(); as err) {
+    <p class="erreur" role="alert">{{ err.message }} ({{ err.code }})</p>
+  } @else if (retour(); as r) {
+    <div class="succes">
+      <!-- Étape 3 : moyenne des relectures rendues ; PROVISOIRE si une seule (F3 : fourni par l'API). -->
+      <p>
+        Note : <strong>{{ r.note }}/20</strong>
+        @if (r.provisoire) {
+          <span class="badge badge-attente">PROVISOIRE — en attente du 2ᵉ relecteur</span>
+        } @else {
+          <span class="badge badge-relu">définitive</span>
+        }
+      </p>
+      @for (c of r.commentaires; track c) {
+        <p class="detail">« {{ c }} »</p>
+      }
+      @if (r.derniereRendueAt) {
+        <p class="detail">Dernière relecture rendue le {{ r.derniereRendueAt | date:'dd/MM à HH:mm' }}</p>
+      }
+    </div>
+  }
+</section>

@@ -4,13 +4,16 @@
 
 - **Backend :** Java 17 · Spring Boot · Maven (`mvnw` commité) · Flyway · H2 en mémoire
 - **Frontend :** **Angular** — choisi parce qu'il impose nativement la séparation des couches exigée par le sujet (composants / services / couche d'appel API dédiée avec `HttpClient`, contrainte F3), avec un typage TypeScript de bout en bout
-- **Base de données :** schéma versionné par migrations Flyway (V1 à V7), conforme au diagramme D2
+- **Base de données :** schéma versionné par migrations Flyway (V1 à V8), conforme au diagramme D2
 
 ## Démarrage (testé depuis un clone vierge — 3 commandes)
 
 ```bash
 # 1. Backend — http://localhost:8080 (données de démonstration chargées par Flyway)
 cd backend && ./mvnw spring-boot:run
+
+# Si le port 8080 est déjà occupé sur votre poste :
+SERVER_PORT=8081 ./mvnw spring-boot:run   # puis adapter l'URL de l'API (frontend/src/environments)
 
 # 2. Frontend — http://localhost:4200 (deuxième terminal)
 cd frontend && npm install && npm start
@@ -21,10 +24,11 @@ cd frontend && npm install && npm start
 ## Données de démonstration (jamais vide à l'ouverture)
 
 - Promotion **L1 Informatique 2026** (id 1)
-- 6 étudiants : Aline Mefire, Boris Tchoumi, Cynthia Ngo, David Ekwalla, Emma Nkoulou, Frank Mbarga
-- Session **ouverte** de démonstration avec le code de présence **`DEMO24`** (expire 30 min après le démarrage)
+- **30 étudiants** (liste de choix de la connexion, Q1)
+- Session **passée et clôturée** `PAST99` : 30 présences (20 étudiantes + 10 ajoutées par le formateur, RG11), 8 exercices déposés, **7 notes rendues** (moyennes visibles dans le tableau) et **1 relecture en attente** (étudiant 9, écran Relecteur)
+- Session **ouverte** de démonstration avec le code de présence **`DEMO24`** (expire 30 min après le démarrage) — 2 étudiants y sont déjà présents, les 28 autres peuvent marquer en direct
 
-**Test immédiat :** écran Étudiant → choisir un nom → saisir `DEMO24` → la présence apparaît dans le tableau du formateur (écran Formateur → « Charger le tableau »).
+**Test immédiat :** écran Formateur → « Charger le tableau » (le tableau est déjà riche) ; puis écran Étudiant → choisir un nom → saisir `DEMO24` ; ou écran Relecteur → étudiant 9 → rendre la relecture en attente.
 
 ## Structure
 
@@ -41,7 +45,7 @@ frontend/     Angular standalone, couche API dédiée (F1-F3), 3 écrans
 |---|---|
 | [`docs/CAHIER_DES_CHARGES.md`](docs/CAHIER_DES_CHARGES.md) | 10 sections : EF1–EF15, RG1–RG16, contradictions tranchées (Q10/Q15 → Q15) |
 | [`docs/diagrammes/`](docs/diagrammes) | D1 cas d'utilisation · D2 classes · D3 séquence présence · D4 états de l'exercice (bonus) |
-| [`docs/backlog-issues.md`](docs/backlog-issues.md) | Backlog (14 tickets, Must/Should) |
+| [`docs/backlog-issues.md`](docs/backlog-issues.md) | Backlog (15 tickets, Must/Should) |
 | [`api/contrat.yaml`](api/contrat.yaml) | Contrat OpenAPI — format d'erreur `{ code, message }` partout |
 | [`docs/JOURNAL.md`](docs/JOURNAL.md) | Journal de bord, une entrée par étape |
 
@@ -51,4 +55,4 @@ frontend/     Angular standalone, couche API dédiée (F1-F3), 3 écrans
 cd backend && ./mvnw test
 ```
 
-11 tests, sans base locale (H2 + simulations) : unitaires sur les règles métier RG1/RG2/RG4/RG13/RG14, test d'intégration sur `POST /api/relectures/{id}` (B6).
+15 tests, sans base locale (H2 + simulations) : unitaires sur les règles métier RG1/RG2/RG4/RG13/RG14, tests d'intégration sur `POST /api/presences` (201 nominal, 400 CODE_INCONNU, 409 DEJA_PRESENT, 410 CODE_EXPIRE) et sur `POST /api/relectures/{id}` (B6).

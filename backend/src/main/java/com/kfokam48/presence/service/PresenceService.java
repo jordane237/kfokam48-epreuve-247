@@ -11,6 +11,7 @@ import com.kfokam48.presence.repository.EtudiantRepository;
 import com.kfokam48.presence.repository.PresenceRepository;
 import com.kfokam48.presence.repository.SessionRepository;
 import com.kfokam48.presence.repository.TentativeCodeRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import org.springframework.http.HttpStatus;
@@ -81,10 +82,28 @@ public class PresenceService {
             tentative.reinitialiser();
         }
 
-        Presence presence = presences.save(
-                new Presence(session.getId(), requete.etudiantId(), Presence.Source.ETUDIANT, maintenant));
+        Presence presence = insererDeManiereAtomique(
+                session.getId(), requete.etudiantId(), Presence.Source.ETUDIANT);
         return new PresenceDto(presence.getId(), presence.getSessionId(),
                 presence.getEtudiantId(), presence.getSource().name());
+    }
+
+    /**
+     * Issue #33 : chaque présence est un INSERT atomique et indépendant — aucune
+     * écriture ne dépend d'un état parent chargé en mémoire (pas de @OneToMany,
+     * pas de cascade). La vérification RG2 ci-dessus reste la protection normale ;
+     * la contrainte unique (session_id, etudiant_id) est le filet de sécurité : si
+     * deux transactions la franchissent en même temps (TOCTOU), l'INSERT du perdant
+     * est rejeté par la base et traduit en 409 DEJA_PRESENT — jamais en 500.
+     */
+    private Presence insererDeManiereAtomique(Long sessionId, Long etudiantId, Presence.Source source) {
+        try {
+            return presences.save(new Presence(sessionId, etudiantId, source, LocalDateTime.now()));
+        } catch (DataIntegrityViolationException e) {
+            // Un concurrent a commité la même (session, étudiant) entre le check et l'INSERT.
+            throw new BusinessException(HttpStatus.CONFLICT, "DEJA_PRESENT",
+                    "Cet étudiant a déjà marqué sa présence.");
+        }
     }
 
     /**
@@ -111,8 +130,8 @@ public class PresenceService {
                     "Cet étudiant a déjà marqué sa présence.");
         }
 
-        Presence presence = presences.save(new Presence(sessionId, requete.etudiantId(),
-                Presence.Source.FORMATEUR, LocalDateTime.now()));
+        // Même filet de sécurité que le marquage étudiant (issue #33).
+        Presence presence = insererDeManiereAtomique(sessionId, requete.etudiantId(), Presence.Source.FORMATEUR);
         return new PresenceDto(presence.getId(), presence.getSessionId(),
                 presence.getEtudiantId(), presence.getSource().name());
     }

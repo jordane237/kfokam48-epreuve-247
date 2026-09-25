@@ -2,6 +2,7 @@ package com.kfokam48.presence.api.error;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -27,6 +28,13 @@ public class GlobalExceptionHandler {
                 .map(err -> "Le champ « " + err.getField() + " » est obligatoire.")
                 .orElse("Requête invalide.");
         return ResponseEntity.badRequest().body(new ApiError("CHAMP_MANQUANT", message));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> corpsInvalide(HttpMessageNotReadableException ex) {
+        // Une note décimale (ex. 12.5) ou un corps illisible arrive ici : RG8 → NOTE_INVALIDE.
+        return ResponseEntity.badRequest().body(new ApiError("NOTE_INVALIDE",
+                "La note doit être un entier entre 0 et 20."));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

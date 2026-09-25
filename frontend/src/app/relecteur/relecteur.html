@@ -1,0 +1,74 @@
+<h2>Espace relecteur</h2>
+
+<section class="carte">
+  <h3>1. Qui es-tu ?</h3>
+  <label>
+    Choisis ton nom
+    <select name="relecteurId" [(ngModel)]="etudiantId">
+      <option [ngValue]="null" disabled>— choisir —</option>
+      @for (e of etudiants(); track e.id) {
+        <option [ngValue]="e.id">{{ e.nom }}</option>
+      }
+    </select>
+  </label>
+  <button type="button" (click)="charger()" [disabled]="chargement()">
+    {{ chargement() ? 'Chargement…' : 'Voir mes relectures à faire' }}
+  </button>
+  @if (erreurChargement(); as err) {
+    <p class="erreur" role="alert">{{ err.message }} ({{ err.code }})</p>
+  }
+</section>
+
+<section class="carte">
+  <h3>2. Relectures à faire</h3>
+  @if (enAttente().length === 0) {
+    <p class="chargement">Rien à relire pour l'instant 🎉</p>
+  } @else {
+    <ul>
+      @for (r of enAttente(); track r.exerciceId) {
+        <li>
+          Exercice #{{ r.exerciceId }} —
+          <a [href]="r.lien" target="_blank" rel="noopener">ouvrir le lien</a>
+          (assigné le {{ r.assigneeAt | date:'dd/MM à HH:mm' }})
+          <button type="button" (click)="choisir(r)">Relire</button>
+        </li>
+      }
+    </ul>
+  }
+</section>
+
+@if (exerciceChoisi(); as exercice) {
+  <section class="carte">
+    <h3>3. Relire l'exercice #{{ exercice.exerciceId }}</h3>
+    <p>
+      <a [href]="exercice.lien" target="_blank" rel="noopener">Revoir l'exercice</a>
+    </p>
+    <form (ngSubmit)="rendre()">
+      <label>
+        Note (0–20, entier — définitive dès l'envoi, RG10)
+        <input type="number" name="note" [(ngModel)]="note" min="0" max="20" step="1" />
+      </label>
+      <label>
+        Commentaire
+        <textarea name="commentaire" [(ngModel)]="commentaire" rows="4"
+          placeholder="Points forts, points à améliorer…"></textarea>
+      </label>
+      <button type="submit" [disabled]="renduEnCours()">
+        {{ renduEnCours() ? 'Envoi…' : 'Envoyer la relecture (définitive)' }}
+      </button>
+    </form>
+
+    @if (erreurRendu(); as err) {
+      <p class="erreur" role="alert">
+        {{ err.message }} ({{ err.code }})
+        @if (err.code === 'RELECTURE_PROPRE_EXERCICE') {
+          — on ne relit jamais son propre exercice (RG7).
+        }
+      </p>
+    } @else if (confirmation(); as c) {
+      <p class="succes">
+        Relecture rendue ✅ — note {{ c.note }}/20 enregistrée. Elle est définitive (RG10).
+      </p>
+    }
+  </section>
+}

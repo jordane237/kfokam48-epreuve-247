@@ -1,6 +1,7 @@
 package com.kfokam48.presence.repository;
 
 import com.kfokam48.presence.entity.Session;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -10,4 +11,7 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
 
     /** Retrouve une session par son code de présence (EF2). */
     Optional<Session> findByCode(String code);
+
+    /** Sessions d'une promotion — périmètre du tableau (RG15). */
+    List<Session> findByPromotionId(Long promotionId);
 }

@@ -1,6 +1,7 @@
 package com.kfokam48.presence.repository;
 
 import com.kfokam48.presence.entity.Presence;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -11,4 +12,7 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
 
     /** RG13 : les étudiants présents à une session, candidats relecteurs. */
     List<Presence> findBySessionId(Long sessionId);
+
+    /** Tableau RG15 : présences de toutes les sessions d'une promotion. */
+    List<Presence> findBySessionIdIn(Collection<Long> sessionIds);
 }

@@ -16,16 +16,21 @@ import org.springframework.transaction.annotation.Transactional;
  * EF5 : déposer le lien de son exercice.
  * Hypothèse documentée (cahier des charges §7) : le dépôt n'exige pas d'avoir
  * marqué sa présence — aucun contrôle de présence ici, volontairement.
+ * Juste après un dépôt réussi, l'assignation d'un relecteur est tentée (EF8) ;
+ * son éventuel échec silencieux (RG14) ne fait jamais échouer le dépôt.
  */
 @Service
 public class ExerciceService {
 
     private final ExerciceRepository exercices;
     private final SessionRepository sessions;
+    private final AssignationService assignation;
 
-    public ExerciceService(ExerciceRepository exercices, SessionRepository sessions) {
+    public ExerciceService(ExerciceRepository exercices, SessionRepository sessions,
+            AssignationService assignation) {
         this.exercices = exercices;
         this.sessions = sessions;
+        this.assignation = assignation;
     }
 
     @Transactional
@@ -46,7 +51,10 @@ public class ExerciceService {
         Exercice exercice = exercices.save(new Exercice(
                 requete.sessionId(), requete.etudiantId(), requete.lien(),
                 Exercice.Statut.depose, LocalDateTime.now()));
-        return new ExerciceCreeDto(exercice.getId(), exercice.getStatut().name());
+
+        // EF8 : le statut renvoyé reflète l'assignation (depose → assigne | en_attente_relecteur).
+        Exercice.Statut statutFinal = assignation.assigner(exercice);
+        return new ExerciceCreeDto(exercice.getId(), statutFinal.name());
     }
 
     /** 400 LIEN_INVALIDE si l'URL n'est pas exploitable (http/https avec hôte). */

@@ -55,9 +55,13 @@
 			<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
 
+		<!-- Issue #33 : H2 2.4.240 souffre du bug #4302 ("Check constraint invalid"
+		     sous inserts simultanés). 2.5.250 le corrige (changelog officiel).
+		     En production visée : PostgreSQL, non concerné. -->
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
+			<version>2.5.250</version>
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>

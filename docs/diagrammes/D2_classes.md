@@ -12,7 +12,7 @@ erDiagram
     ETUDIANT ||--o{ EXERCICE : "depose"
     ETUDIANT ||--o{ RELECTURE : "effectue_en_tant_que_relecteur"
     ETUDIANT ||--o| TENTATIVE_CODE : "voit_ses_echecs_suivis"
-    EXERCICE ||--o| RELECTURE : "fait_l_objet_de"
+    EXERCICE ||--o{ RELECTURE : "fait_l_objet_de (0..2 relecteurs — étape 3)"
 
     PROMOTION {
         bigint id PK
@@ -55,7 +55,7 @@ erDiagram
 
     RELECTURE {
         bigint id PK
-        bigint exercice_id FK "UK — un seul relecteur, RG16"
+        bigint exercice_id FK "UK (exercice_id, relecteur_id) — deux relecteurs max, RG16 étape 3"
         bigint relecteur_id FK "≠ auteur — RG7, parmi les présents RG13"
         int note "entier 0–20 — RG8"
         varchar commentaire
@@ -77,6 +77,7 @@ erDiagram
 - Unicité `(session_id, etudiant_id)` sur `PRESENCE` (RG2) et sur `EXERCICE` (RG5) : garantie en base par contrainte d'unicité, pas seulement dans le service.
 - `SESSION.cloture_at` est nullable : `NULL` = session ouverte (le dépôt reste possible, Q12), renseigné = clôturée (RG12).
 - `RELECTURE.relecteur_id` porte le choix aléatoire (RG13) : le relecteur est un étudiant, pas un acteur distinct (§2).
+- **Étape 3 (double relecture)** : la relation `EXERCICE → RELECTURE` passe de `0..1` à `0..2` — deux affectations distinctes par exercice. L'unicité `unique(exercice_id)` (RG16 v1) devient `unique(exercice_id, relecteur_id)` (migration V9), compatible avec les données existantes. La note affichée à l'étudiant est la moyenne des relectures *rendues*, provisoire si une seule (RG10/RG15 étape 3).
 - `TENTATIVE_CODE` (migration V3) porte le compteur anti-dévination RG3/RG4 : une seule ligne par étudiant (`UNIQUE (etudiant_id)`), car avec un code inconnu la session visée est par définition inconnue — le blocage porte sur l'étudiant, ce qui est plus strict et conforme à l'intention de Q4.
 - La note n'existe que sur `RELECTURE` ; la moyenne du tableau (EF13) est calculée côté API (F3).
 - Les noms de colonnes reflètent exactement les migrations Flyway V1–V7 (`marque_at`, `depose_at`, `maj_at`, `assignee_at`, `rendue_at`, `echecs_consicutifs`, `bloque_jusqua`).

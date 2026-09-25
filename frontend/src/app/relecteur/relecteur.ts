@@ -82,7 +82,9 @@ export class Relecteur implements OnInit {
     }
     this.renduEnCours.set(true);
     this.erreurRendu.set(null);
-    this.relecturesApi.rendre(exercice.exerciceId, this.note, this.commentaire.trim()).subscribe({
+    // Étape 3 : on soumet SA propre affectation (relecteurId) — chaque relecteur
+    // ne voit toujours que ses propres relectures dans la liste.
+    this.relecturesApi.rendre(exercice.exerciceId, this.note, this.commentaire.trim(), this.etudiantId ?? undefined).subscribe({
       next: (rendue) => {
         this.confirmation.set(rendue);
         this.renduEnCours.set(false);

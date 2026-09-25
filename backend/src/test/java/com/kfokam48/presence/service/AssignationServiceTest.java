@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -61,7 +62,7 @@ class AssignationServiceTest {
     }
 
     @Test
-    @DisplayName("RG13/RG7 : le relecteur est tiré parmi les présents, jamais l'auteur")
+    @DisplayName("RG13/RG7 : les relecteurs sont tirés parmi les présents, jamais l'auteur (RG16 étape 3 : deux distincts)")
     void tirageExclutLAuteur() {
         when(presences.findBySessionId(1L)).thenReturn(List.of(
                 new Presence(1L, 10L, Presence.Source.ETUDIANT, LocalDateTime.now()), // l'auteur
@@ -72,8 +73,10 @@ class AssignationServiceTest {
 
         assertEquals(Exercice.Statut.assigne, statut);
         ArgumentCaptor<Relecture> captor = ArgumentCaptor.forClass(Relecture.class);
-        verify(relectures).save(captor.capture());
-        Long relecteur = captor.getValue().getRelecteurId();
-        assertTrue(relecteur == 11L || relecteur == 12L, "relecteur élu : " + relecteur);
+        verify(relectures, times(2)).save(captor.capture());
+        List<Long> elus = captor.getAllValues().stream().map(Relecture::getRelecteurId).toList();
+        assertEquals(2, elus.size(), "RG16 étape 3 : deux affectations créées");
+        assertTrue(elus.stream().allMatch(r -> r == 11L || r == 12L), "relecteurs élus : " + elus);
+        assertTrue(!elus.get(0).equals(elus.get(1)), "les deux relecteurs sont distincts : " + elus);
     }
 }

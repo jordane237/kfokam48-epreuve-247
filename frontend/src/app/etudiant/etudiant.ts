@@ -1,8 +1,10 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DatePipe } from '@angular/common';
 import { EtudiantsApiService, Etudiant as EtudiantListe } from '../api/etudiants.service';
 import { PresencesApiService, PresenceCreee } from '../api/presences.service';
 import { ExercicesApiService, ExerciceReponse } from '../api/exercices.service';
+import { RelecturesApiService, RetourRelecture } from '../api/relectures.service';
 import { ApiError } from '../api/api-error';
 
 /**
@@ -12,7 +14,7 @@ import { ApiError } from '../api/api-error';
  */
 @Component({
   selector: 'app-etudiant',
-  imports: [FormsModule],
+  imports: [FormsModule, DatePipe],
   templateUrl: './etudiant.html',
   styleUrl: './etudiant.css'
 })
@@ -21,6 +23,7 @@ export class Etudiant implements OnInit {
   private readonly etudiantsApi = inject(EtudiantsApiService);
   private readonly presencesApi = inject(PresencesApiService);
   private readonly exercicesApi = inject(ExercicesApiService);
+  private readonly relecturesApi = inject(RelecturesApiService);
 
   promotionId = 1;
 
@@ -42,6 +45,33 @@ export class Etudiant implements OnInit {
   depotEnCours = signal(false);
   erreurDepot = signal<ApiError | null>(null);
   exerciceDepose = signal<ExerciceReponse | null>(null);
+
+  // --- Retour de relecture (EF11, étape 3) ---
+  retourExerciceId: number | null = null;
+  retourEnChargement = signal(false);
+  erreurRetour = signal<ApiError | null>(null);
+  retour = signal<RetourRelecture | null>(null);
+
+  chargerRetour(): void {
+    if (this.retourExerciceId === null) {
+      this.erreurRetour.set({ code: 'CHAMP_MANQUANT', message: 'Indique le numéro de ton exercice.' });
+      return;
+    }
+    this.retourEnChargement.set(true);
+    this.erreurRetour.set(null);
+    this.retour.set(null);
+    // F3 : la moyenne et l'indicateur provisoire viennent de l'API — jamais recalculés ici.
+    this.relecturesApi.retour(this.retourExerciceId).subscribe({
+      next: (r) => {
+        this.retour.set(r);
+        this.retourEnChargement.set(false);
+      },
+      error: (err: ApiError) => {
+        this.erreurRetour.set(err);
+        this.retourEnChargement.set(false);
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.chargerListe();

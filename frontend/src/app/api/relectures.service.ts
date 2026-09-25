@@ -9,7 +9,7 @@ export interface RelectureEnAttente {
   assigneeAt: string;
 }
 
-/** Sortie 200 de POST /api/relectures/{id} — contrat. */
+/** Sortie 200 de POST /api/relectures/{id} — contrat (affectations = champ additionnel étape 3). */
 export interface RelectureRendue {
   id: number;
   exerciceId: number;
@@ -17,6 +17,16 @@ export interface RelectureRendue {
   commentaire: string;
   rendueAt: string;
   statut: 'assignee' | 'rendue';
+  affectations?: { relectureId: number; relecteurId: number; statut: string; note: number | null; rendueAt: string | null }[];
+}
+
+/** Retour consulté par l'étudiant relu (EF11) — étape 3 : moyenne + indicateur. */
+export interface RetourRelecture {
+  exerciceId: number;
+  note: number;
+  provisoire: boolean;
+  commentaires: string[];
+  derniereRendueAt: string | null;
 }
 
 /** Service dédié aux relectures (F3). */
@@ -33,11 +43,21 @@ export class RelecturesApiService extends ApiServiceBase {
     );
   }
 
-  /** EF9 : rendre une relecture (id = id de l'exercice) ; 403/400/409 normalisés. */
-  rendre(exerciceId: number, note: number, commentaire: string) {
+  /**
+   * EF9 : rendre une relecture (id = id de l'exercice). Étape 3 : relecteurId
+   * identifie SA propre affectation dès que deux relecteurs sont assignés.
+   */
+  rendre(exerciceId: number, note: number, commentaire: string, relecteurId?: number) {
     return this.envelopper(
       this.http.post<RelectureRendue>(`${this.apiUrl}/api/relectures/${exerciceId}`,
-        { note, commentaire })
+        relecteurId != null ? { note, commentaire, relecteurId } : { note, commentaire })
+    );
+  }
+
+  /** EF11 : note (moyenne des relectures rendues) + provisoire — Q8 : sans identité des relecteurs. */
+  retour(exerciceId: number) {
+    return this.envelopper(
+      this.http.get<RetourRelecture>(`${this.apiUrl}/api/exercices/${exerciceId}/retour`)
     );
   }
 }

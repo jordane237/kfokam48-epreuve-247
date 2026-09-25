@@ -7,14 +7,15 @@ import java.time.LocalDateTime;
  * Entité Exercice — table `exercice` (V5).
  * Les constantes de statut sont volontairement en minuscules : elles sont
  * stockées telles quelles et exposées telles quelles, conformément au contrat
- * et au diagramme D4 (depose → en_attente_relecteur | assigne → relu).
+ * et au diagramme D4 (depose → en_attente_relecteur | assigne → relu_partiel → relu,
+ * étape 3 : relu_partiel = une relecture rendue sur deux, note PROVISOIRE).
  */
 @Entity
 @Table(name = "exercice")
 public class Exercice {
 
     public enum Statut {
-        depose, en_attente_relecteur, assigne, relu
+        depose, en_attente_relecteur, assigne, relu_partiel, relu
     }
 
     @Id

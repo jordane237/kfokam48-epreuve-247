@@ -13,12 +13,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * EF8 : assignation automatique d'un relecteur, juste après un dépôt réussi.
+ * EF8 : assignation automatique des relecteurs, juste après un dépôt réussi.
  * RG13 : tirage au hasard parmi les étudiants présents à cette session.
  * RG7 : l'auteur est exclu du tirage.
  * RG14 : si aucun candidat, l'exercice passe à `en_attente_relecteur` et
  * AUCUNE erreur n'est renvoyée à l'appelant — le dépôt réussit quand même (Q11).
- * RG16 : un seul relecteur par exercice (unicité en base, V6).
+ * RG16 (changement de besoin étape 3) : DEUX relecteurs distincts par exercice ;
+ * un seul candidat → il est assigné seul (la note sera provisoire) ; aucun → RG14.
  */
 @Service
 public class AssignationService {
@@ -36,7 +37,7 @@ public class AssignationService {
         this.aleatoire = aleatoire;
     }
 
-    /** Assigne un relecteur si possible et renvoie le statut final de l'exercice. */
+    /** Assigne les relecteurs (deux si possible) et renvoie le statut final de l'exercice. */
     @Transactional
     public Exercice.Statut assigner(Exercice exercice) {
         List<Long> candidats = presences.findBySessionId(exercice.getSessionId()).stream()
@@ -52,8 +53,20 @@ public class AssignationService {
             return exercice.getStatut();
         }
 
-        Long elu = candidats.get(aleatoire.nextInt(candidats.size())); // RG13 : au hasard
-        relectures.save(new Relecture(exercice.getId(), elu, LocalDateTime.now()));
+        // RG16 étape 3 : premier relecteur, puis un second distinct si possible.
+        Long premier = candidats.get(aleatoire.nextInt(candidats.size()));
+        relectures.save(new Relecture(exercice.getId(), premier, LocalDateTime.now()));
+
+        if (candidats.size() > 1) {
+            Long second;
+            do {
+                second = candidats.get(aleatoire.nextInt(candidats.size()));
+            } while (second.equals(premier));
+            relectures.save(new Relecture(exercice.getId(), second, LocalDateTime.now()));
+        }
+        // Un seul candidat : il est assigné seul — la note de l'exercice sera
+        // PROVISOIRE jusqu'à (éventuelle) seconde assignation, choix client étape 3.
+
         exercice.setStatut(Exercice.Statut.assigne);
         exercices.save(exercice);
         return exercice.getStatut();

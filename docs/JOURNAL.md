@@ -54,3 +54,13 @@ IA : a proposé l'option `relecteurId` dans le corps et la décomposition FK/uni
 
 **Sacrifice assumé : pour tenir le délai, l'issue #39 (badge « provisoire » dans le tableau du formateur) est sortie du périmètre — la mention reste visible sur l'écran étudiant uniquement, et le cœur du changement (assignation double, calcul de moyenne, migration) est priorisé.**
 
+---
+
+## Étape 4 — Livrabilité et remise (≈ 1 h 30, 25/09 soir + 26/09 matin)
+
+Fait : `CHANGELOG.md` à la racine, rédigé depuis le `git log` réel (pas de mémoire) — **Ajouté** (v0.1, PR #15–#26), **Corrigé** (concurrence #33/#34, 500→409), **Changé** (double relecture #35–#38/#40, avec la casse de RG16/Q6 documentée) ; `SOUMISSION.md` officiel à la racine (modèle de l'étape 6) ; backlog trié — **#39 est la seule issue ouverte**, label `Could`, sacrifice assumé et visible, je ne la ferme pas artificiellement ; audit complet de l'historique : aucun `target/`, `node_modules/`, `dist/` ni fichier de secret jamais commité (seul `frontend/.env.example`, sans secret), un seul auteur sur tous les commits, jalons `depart` 11:59 → `analyse` 12:43 → `v0.1` 15:03 dans l'ordre ; test **clone vierge** refait intégralement : clone GitHub dans un répertoire neuf, `backend/mvnw` commité exécutable, backend démarré tel quel (health OK en ~25 s, migrations V1–V9 appliquées par Flyway), seeds vérifiés par l'API (tableau 30 lignes et 7 moyennes dont Aline 14.0, Boris 13.5, Cynthia 15.5 ; 10 présences formateur, Q14 ; retour exercice 1 = 14.0 définitive ; exercice 7 = 11.0 **PROVISOIRE** ; une affectation en attente sur l'exercice 8 pour l'étudiant 10), puis `npm ci` + `ng build` verts depuis le lockfile ; dernier geste : jalon `[JALON] v1.0` (commit vide) posé en toute dernière position, après la vérification du clone.
+
+Bloqué : ~15 min, tous des faux positifs de ma part pendant la vérification : j'ai interpellé `/api/tableau` et `/api/relectures/en-attente` sans leurs paramètres (`promotionId`, `relecteurId`) et pris les réponses d'erreur de l'app pour des bugs du clone ; un démarrage sans `SERVER_PORT` a percuté le 8080 déjà occupé avant d'être relancé sur 8090. Aucun bloqueur réel : le clone tourne sans aucune manipulation.
+
+IA : a scripté et rejoué la vérification du clone (appels curl + lecture des logs) et l'audit d'historique. Vérifié en exécutant : chaque affirmation du CHANGELOG confrontée à un commit réel (`git log`), chaque seed confronté à une réponse HTTP réelle du clone fraîchement cloné (et non au dépôt de travail), audit `git log --all --full-history` pour les fichiers interdits, port de test 8090 rendu après usage.
+

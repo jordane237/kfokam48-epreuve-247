@@ -6,7 +6,7 @@ Centre           : [À REMPLIR : Yaoundé | Douala | Bafoussam]
 
 ## Projet
 Dépôt GitHub (public) : https://github.com/jordane237/kfokam48-epreuve-247
-Commit final (hash complet sur 40 caractères) : [HASH DU COMMIT [JALON] v1.0 — rempli dès sa création]
+Commit final (hash complet sur 40 caractères) : b6cf8e4e9ea103c151d6e5365e97d1b4f2b185f0 (commit `[JALON] v1.0`)
 
 ## Épreuve Git (étape 5)
 Dépôt GitHub (public) : [À REMPLIR après l'étape 5 — https://github.com/jordane237/kfokam48-gitlab-<matricule>]
